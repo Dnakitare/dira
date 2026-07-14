@@ -1,0 +1,44 @@
+name: pages
+
+on:
+  push:
+    branches: [main]
+    paths: ["web/**", ".github/workflows/pages.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: corepack enable && corepack prepare pnpm@10.9.0 --activate
+      - run: pnpm install --frozen-lockfile
+        working-directory: web
+      # The Pages build boots straight into the static demo player with the
+      # bundled recorded run; no backend exists there.
+      - run: pnpm build
+        working-directory: web
+        env:
+          VITE_BASE: /dira/
+          VITE_DEMO_RUN: demo-run.json
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist
+      - id: deployment
+        uses: actions/deploy-pages@v4

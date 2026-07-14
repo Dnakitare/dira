@@ -134,11 +134,11 @@ pub fn evaluate_policies(
 
     let mut out = Vec::new();
     let issue = |kind: RecKind,
-                     policy_id: &str,
-                     reason: String,
-                     confidence: f64,
-                     out: &mut Vec<Recommendation>,
-                     rec_seq: &mut u64| {
+                 policy_id: &str,
+                 reason: String,
+                 confidence: f64,
+                 out: &mut Vec<Recommendation>,
+                 rec_seq: &mut u64| {
         *rec_seq += 1;
         out.push(Recommendation {
             id: format!("R-{:04}", *rec_seq),
@@ -213,8 +213,7 @@ pub fn evaluate_policies(
                     );
                 } else if let Some(t_entry) = time_to_entry(track, zone) {
                     if t_entry <= cfg.track_flag.horizon_s {
-                        let confidence =
-                            0.5 + 0.45 * (1.0 - t_entry / cfg.track_flag.horizon_s);
+                        let confidence = 0.5 + 0.45 * (1.0 - t_entry / cfg.track_flag.horizon_s);
                         issue(
                             RecKind::FlagTrack {
                                 track: track.id.clone(),

@@ -77,8 +77,8 @@ enum Cmd {
     },
     /// Headless repeated runs with a scripted operator; prints metrics JSON.
     Benchmark {
-        #[arg(long)]
-        scenario: PathBuf,
+        #[arg(long, required_unless_present = "stress")]
+        scenario: Option<PathBuf>,
         #[arg(long)]
         policy: Option<PathBuf>,
         #[arg(long, default_value_t = 5)]
@@ -88,6 +88,23 @@ enum Cmd {
         /// Defaults to the scenario's own seed; run i uses base_seed + i.
         #[arg(long)]
         base_seed: Option<u64>,
+        /// Synthesize an N-track scenario and report tick-time percentiles
+        /// instead of running metric comparisons.
+        #[arg(long)]
+        stress: Option<usize>,
+    },
+    /// Export a recorded run as a single JSON file (for sharing or the
+    /// static demo player).
+    Export {
+        #[arg(long, default_value = "dira.db")]
+        db: PathBuf,
+        #[arg(long)]
+        run: i64,
+        #[arg(long)]
+        out: PathBuf,
+        /// Keep at most one snapshot per this many sim milliseconds.
+        #[arg(long, default_value_t = 200)]
+        every_ms: u64,
     },
 }
 
@@ -120,8 +137,7 @@ fn default_web_dir() -> String {
 fn main() -> Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "info".into()),
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()),
         )
         .init();
 
@@ -134,7 +150,15 @@ fn main() -> Result<()> {
             db,
             web_dir,
             token,
-        } => serve_sim("simulate", &scenario, policy.as_deref(), bind, &db, web_dir, token),
+        } => serve_sim(
+            "simulate",
+            &scenario,
+            policy.as_deref(),
+            bind,
+            &db,
+            web_dir,
+            token,
+        ),
         Cmd::Edge { config } => {
             let text = std::fs::read_to_string(&config)
                 .with_context(|| format!("reading edge config {}", config.display()))?;
@@ -164,8 +188,58 @@ fn main() -> Result<()> {
             runs,
             approve_after_ms,
             base_seed,
-        } => benchmark::run(&scenario, policy.as_deref(), runs, approve_after_ms, base_seed),
+            stress,
+        } => match stress {
+            Some(n) => benchmark::stress(n),
+            None => benchmark::run(
+                scenario
+                    .as_deref()
+                    .expect("clap enforces scenario or stress"),
+                policy.as_deref(),
+                runs,
+                approve_after_ms,
+                base_seed,
+            ),
+        },
+        Cmd::Export {
+            db,
+            run,
+            out,
+            every_ms,
+        } => export_run(&db, run, &out, every_ms),
     }
+}
+
+/// Write one recorded run as a self-contained JSON document:
+/// `{ info, events, snapshots: [{sim_time_ms, world}] }`.
+fn export_run(db: &Path, run_id: i64, out: &Path, every_ms: u64) -> Result<()> {
+    let store = Store::open(db)?;
+    let recorded = store.load_run(run_id)?;
+    let mut snapshots = Vec::new();
+    let mut last: Option<u64> = None;
+    let n_total = recorded.snapshots.len();
+    for (i, (t, world)) in recorded.snapshots.iter().enumerate() {
+        let keep = last.is_none_or(|lt| t.saturating_sub(lt) >= every_ms) || i == n_total - 1;
+        if keep {
+            last = Some(*t);
+            snapshots.push(serde_json::json!({ "sim_time_ms": t, "world": world }));
+        }
+    }
+    let doc = serde_json::json!({
+        "format": "dira-run-export/1",
+        "info": recorded.info,
+        "events": recorded.events,
+        "snapshots": snapshots,
+    });
+    std::fs::write(out, serde_json::to_string(&doc)?)?;
+    eprintln!(
+        "exported run {run_id}: {} events, {}/{} snapshots -> {}",
+        recorded.events.len(),
+        snapshots.len(),
+        n_total,
+        out.display()
+    );
+    Ok(())
 }
 
 fn runtime_info(mode: &str) -> RuntimeInfo {
@@ -226,7 +300,9 @@ fn serve_sim(
 
     let rt = tokio::runtime::Runtime::new()?;
     rt.block_on(async {
-        let world_preview = dira_simulator::SimEngine::new(scenario.clone()).world().clone();
+        let world_preview = dira_simulator::SimEngine::new(scenario.clone())
+            .world()
+            .clone();
         let (state, cmd_rx) = build_state(runtime_info(mode), token, world_preview);
         let session = SimSession::new(
             state.clone(),

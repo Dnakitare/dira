@@ -114,7 +114,7 @@ impl SimSession {
                         let events = self.engine.tick();
                         self.persist_and_publish(&events)?;
                         let world = self.engine.world();
-                        if world.sim_time_ms % SNAPSHOT_RECORD_MS == 0 {
+                        if world.sim_time_ms.is_multiple_of(SNAPSHOT_RECORD_MS) {
                             self.store.record_snapshot(self.run_id, world)?;
                         }
                         self.state.publish_snapshot(world);
@@ -124,7 +124,7 @@ impl SimSession {
                         {
                             self.finish_run(true)?;
                         }
-                    } else if self.tick_count % 10 == 0 {
+                    } else if self.tick_count.is_multiple_of(10) {
                         // 1 Hz heartbeat so clients can show liveness and
                         // staleness while idle, paused, or complete.
                         self.state.publish_snapshot(self.engine.world());
@@ -174,7 +174,8 @@ impl SimSession {
         self.finish_run(self.engine.world().phase == SimPhase::Complete)?;
         self.engine = SimEngine::new(scenario);
         self.run_id = self.store.begin_run(self.engine.world())?;
-        self.store.record_snapshot(self.run_id, self.engine.world())?;
+        self.store
+            .record_snapshot(self.run_id, self.engine.world())?;
         self.run_finished = false;
         self.state.hello.write().expect("hello lock").recent.clear();
         self.refresh_runs()?;

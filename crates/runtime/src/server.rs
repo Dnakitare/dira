@@ -74,16 +74,16 @@ impl AppState {
                 hello.recent.pop_front();
             }
         }
-        let _ = self
-            .broadcast_tx
-            .send(self.encode(ServerMsg::Event { event: event.clone() }));
+        let _ = self.broadcast_tx.send(self.encode(ServerMsg::Event {
+            event: event.clone(),
+        }));
     }
 
     pub fn publish_snapshot(&self, world: &WorldState) {
         self.hello.write().expect("hello lock").world = world.clone();
-        let _ = self
-            .broadcast_tx
-            .send(self.encode(ServerMsg::Snapshot { world: world.clone() }));
+        let _ = self.broadcast_tx.send(self.encode(ServerMsg::Snapshot {
+            world: world.clone(),
+        }));
     }
 
     pub fn publish_raw(&self, msg: ServerMsg) {

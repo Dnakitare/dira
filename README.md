@@ -1,8 +1,13 @@
 # dira
 
+[![ci](https://github.com/Dnakitare/dira/actions/workflows/ci.yml/badge.svg)](https://github.com/Dnakitare/dira/actions/workflows/ci.yml)
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 A compiled, edge-hosted digital-twin and operator-coordination runtime. One Rust binary maintains an authoritative local operating picture, evaluates configurable coordination policies, and records an auditable event log. A React + Three.js console visualizes and controls it from a browser. The browser is never the authority: if it disconnects, the runtime keeps going, and the picture resynchronizes on reconnect.
 
 Everything in this repository is simulation. Inputs are synthetic, entities are generic (track, asset, zone, assignment), and every action is a recommendation until an operator approves it.
+
+**[Live demo](https://dnakitare.github.io/dira/)** — the actual console replaying a recorded run in your browser, no install. (It's a static export: the same UI you get against a live runtime, minus the ability to task anything.)
 
 ![operator console](docs/console.png)
 
@@ -17,7 +22,14 @@ Everything in this repository is simulation. Inputs are synthetic, entities are 
 
 ## Quick start
 
-Requires Rust 1.75+ and Node 20+ (pnpm) for the console.
+**From a release** (no toolchain needed): download the archive for your platform from [Releases](https://github.com/Dnakitare/dira/releases), unpack, then:
+
+```sh
+./dira simulate --scenario scenarios/perimeter-incursion.toml
+# open http://127.0.0.1:8080
+```
+
+**From source** (Rust 1.75+, Node 20+ with pnpm):
 
 ```sh
 # build the console once
@@ -49,7 +61,7 @@ scenarios/        scenario and policy configuration files
 docs/             architecture, protocol, test plan, demo script
 ```
 
-Details in [docs/architecture.md](docs/architecture.md). Wire format in [docs/protocol.md](docs/protocol.md).
+Details in [docs/architecture.md](docs/architecture.md). Wire format in [docs/protocol.md](docs/protocol.md). Design decisions and their rejected alternatives in [docs/adr/](docs/adr/).
 
 ## Tests
 
@@ -57,7 +69,11 @@ Details in [docs/architecture.md](docs/architecture.md). Wire format in [docs/pr
 cargo test --workspace
 ```
 
-The integration tests are the point of the project: identical runs from identical inputs, different seeds diverge, disabled policies stay silent, commands fail closed, and a run with no operator approvals tasks nothing.
+The tests are the point of the project: identical runs from identical inputs (also property-tested over generated scenarios), different seeds diverge, disabled policies stay silent, commands fail closed, and a run with no operator approvals tasks nothing — ever, for any generated input.
+
+## Performance
+
+10,000 tracks tick in 6.25 ms p50 against a 100 ms budget on an Apple M2, with all policies enabled. Numbers, method, and the O(n²) the stress benchmark caught are in [docs/performance.md](docs/performance.md). Reproduce with `cargo run --release -p dira-runtime -- benchmark --stress 10000`.
 
 ## Status and boundaries
 

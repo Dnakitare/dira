@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { connect } from './net/socket'
+import { startDemo } from './net/demo'
 import { useOps } from './state/store'
 import { SceneView } from './scene/SceneView'
 import { TopBar } from './panels/TopBar'
@@ -29,7 +30,16 @@ function Toasts() {
 
 export default function App() {
   useEffect(() => {
-    connect()
+    // `?demo=<url>` (or a build-time default) plays an exported run file
+    // with no backend; otherwise connect to the live runtime.
+    const demoUrl =
+      new URLSearchParams(location.search).get('demo') ??
+      (import.meta.env.VITE_DEMO_RUN as string | undefined)
+    if (demoUrl) {
+      void startDemo(demoUrl)
+    } else {
+      connect()
+    }
   }, [])
 
   return (

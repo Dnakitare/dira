@@ -98,13 +98,25 @@ pub enum Command {
     Pause,
     Resume,
     Reset,
-    SelectScenario { scenario_id: String },
-    AckRecommendation { id: String },
-    ApproveRecommendation { id: String },
-    DeclineRecommendation { id: String },
-    InjectFault { fault: FaultSpec },
+    SelectScenario {
+        scenario_id: String,
+    },
+    AckRecommendation {
+        id: String,
+    },
+    ApproveRecommendation {
+        id: String,
+    },
+    DeclineRecommendation {
+        id: String,
+    },
+    InjectFault {
+        fault: FaultSpec,
+    },
     /// Replay mode only.
-    SetSpeed { multiplier: f64 },
+    SetSpeed {
+        multiplier: f64,
+    },
 }
 
 pub fn encode_server(env: &ServerEnvelope) -> String {

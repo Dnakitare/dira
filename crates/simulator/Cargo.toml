@@ -11,3 +11,6 @@ toml = { workspace = true }
 thiserror = { workspace = true }
 rand = { workspace = true }
 rand_chacha = { workspace = true }
+
+[dev-dependencies]
+proptest = "1"

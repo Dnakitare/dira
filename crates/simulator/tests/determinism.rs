@@ -38,7 +38,10 @@ fn incursion_scenario_produces_expected_activity() {
 
     assert!(has(&|b| matches!(b, DomainEvent::TrackAppeared { .. })));
     assert!(has(&|b| matches!(b, DomainEvent::LinkStateChanged { .. })));
-    assert!(has(&|b| matches!(b, DomainEvent::RecommendationIssued { .. })));
+    assert!(has(&|b| matches!(
+        b,
+        DomainEvent::RecommendationIssued { .. }
+    )));
     assert!(has(&|b| matches!(b, DomainEvent::AssignmentCreated { .. })));
     assert!(has(&|b| matches!(b, DomainEvent::ScenarioCompleted { .. })));
     // The staged uplink outage must actually cost us track custody.

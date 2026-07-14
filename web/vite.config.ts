@@ -1,8 +1,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// Dev-mode proxy to a locally running `dira simulate` (or replay) instance.
+// VITE_BASE lets the GitHub Pages build serve from a subpath.
+// Dev-mode proxy targets a locally running `dira simulate` (or replay).
 export default defineConfig({
+  base: process.env.VITE_BASE ?? '/',
   plugins: [react()],
   server: {
     proxy: {

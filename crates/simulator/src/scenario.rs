@@ -360,7 +360,10 @@ pub fn validate(file: ScenarioFile) -> Result<Scenario, ScenarioError> {
                 }
                 "incursion" => {
                     let zone = t.target_zone.clone().ok_or_else(|| {
-                        invalid(format!("track {}: incursion pattern needs target_zone", t.id))
+                        invalid(format!(
+                            "track {}: incursion pattern needs target_zone",
+                            t.id
+                        ))
                     })?;
                     if !zone_ids.contains(zone.as_str()) {
                         return Err(invalid(format!(
@@ -390,56 +393,55 @@ pub fn validate(file: ScenarioFile) -> Result<Scenario, ScenarioError> {
         })
         .collect::<Result<_, ScenarioError>>()?;
 
-    let mut faults: Vec<TimedFault> = file
-        .faults
-        .iter()
-        .map(|f| {
-            let fault = match (&f.link, &f.node) {
-                (Some(link), None) => {
-                    if !link_ids.contains(link.as_str()) {
-                        return Err(invalid(format!("fault: link '{link}' does not exist")));
-                    }
-                    let state = f
-                        .state
-                        .as_deref()
-                        .ok_or_else(|| invalid(format!("fault on link {link}: missing state")))?;
-                    let state = parse_link_state(state, f.delay_ms, f.loss)?;
-                    FaultSpec::Link {
-                        link: link.clone(),
-                        state,
-                    }
-                }
-                (None, Some(node)) => {
-                    if !node_ids.contains(node.as_str()) {
-                        return Err(invalid(format!("fault: node '{node}' does not exist")));
-                    }
-                    let health = match f.health.as_deref() {
-                        Some("nominal") => NodeHealth::Nominal,
-                        Some("degraded") => NodeHealth::Degraded,
-                        Some("unavailable") => NodeHealth::Unavailable,
-                        other => {
-                            return Err(invalid(format!(
-                                "fault on node {node}: bad health '{other:?}'"
-                            )))
+    let mut faults: Vec<TimedFault> =
+        file.faults
+            .iter()
+            .map(|f| {
+                let fault = match (&f.link, &f.node) {
+                    (Some(link), None) => {
+                        if !link_ids.contains(link.as_str()) {
+                            return Err(invalid(format!("fault: link '{link}' does not exist")));
                         }
-                    };
-                    FaultSpec::Node {
-                        node: node.clone(),
-                        health,
+                        let state = f.state.as_deref().ok_or_else(|| {
+                            invalid(format!("fault on link {link}: missing state"))
+                        })?;
+                        let state = parse_link_state(state, f.delay_ms, f.loss)?;
+                        FaultSpec::Link {
+                            link: link.clone(),
+                            state,
+                        }
                     }
-                }
-                _ => {
-                    return Err(invalid(
-                        "each fault must target exactly one of 'link' or 'node'",
-                    ))
-                }
-            };
-            Ok(TimedFault {
-                at_ms: (f.at_s * 1000.0) as u64,
-                fault,
+                    (None, Some(node)) => {
+                        if !node_ids.contains(node.as_str()) {
+                            return Err(invalid(format!("fault: node '{node}' does not exist")));
+                        }
+                        let health = match f.health.as_deref() {
+                            Some("nominal") => NodeHealth::Nominal,
+                            Some("degraded") => NodeHealth::Degraded,
+                            Some("unavailable") => NodeHealth::Unavailable,
+                            other => {
+                                return Err(invalid(format!(
+                                    "fault on node {node}: bad health '{other:?}'"
+                                )))
+                            }
+                        };
+                        FaultSpec::Node {
+                            node: node.clone(),
+                            health,
+                        }
+                    }
+                    _ => {
+                        return Err(invalid(
+                            "each fault must target exactly one of 'link' or 'node'",
+                        ))
+                    }
+                };
+                Ok(TimedFault {
+                    at_ms: (f.at_s * 1000.0) as u64,
+                    fault,
+                })
             })
-        })
-        .collect::<Result<_, ScenarioError>>()?;
+            .collect::<Result<_, ScenarioError>>()?;
     faults.sort_by_key(|f| f.at_ms);
 
     Ok(Scenario {
@@ -470,8 +472,7 @@ pub fn parse_link_state(
     match state {
         "nominal" => Ok(LinkState::Nominal),
         "delayed" => {
-            let delay_ms =
-                delay_ms.ok_or_else(|| invalid("delayed link state needs delay_ms"))?;
+            let delay_ms = delay_ms.ok_or_else(|| invalid("delayed link state needs delay_ms"))?;
             Ok(LinkState::Delayed { delay_ms })
         }
         "intermittent" => {

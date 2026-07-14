@@ -4,7 +4,7 @@ use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha8Rng;
 
 use dira_domain::{
-    evaluate_policies, Assignment, AssignmentStatus, AssetStatus, DomainEvent, Event, FaultSpec,
+    evaluate_policies, AssetStatus, Assignment, AssignmentStatus, DomainEvent, Event, FaultSpec,
     LinkState, MetricsAccumulator, Objective, PolicyMemory, RecKind, RecStatus, RunMetrics,
     SimPhase, Track, TrackClass, TrackStatus, Vec2, WorldState,
 };
@@ -202,21 +202,36 @@ impl SimEngine {
                     return Err(format!("cannot start from {:?}", self.world.phase));
                 }
                 self.world.phase = SimPhase::Running;
-                self.emit(&mut out, DomainEvent::PhaseChanged { phase: SimPhase::Running });
+                self.emit(
+                    &mut out,
+                    DomainEvent::PhaseChanged {
+                        phase: SimPhase::Running,
+                    },
+                );
             }
             OperatorAction::Pause => {
                 if self.world.phase != SimPhase::Running {
                     return Err(format!("cannot pause from {:?}", self.world.phase));
                 }
                 self.world.phase = SimPhase::Paused;
-                self.emit(&mut out, DomainEvent::PhaseChanged { phase: SimPhase::Paused });
+                self.emit(
+                    &mut out,
+                    DomainEvent::PhaseChanged {
+                        phase: SimPhase::Paused,
+                    },
+                );
             }
             OperatorAction::Resume => {
                 if self.world.phase != SimPhase::Paused {
                     return Err(format!("cannot resume from {:?}", self.world.phase));
                 }
                 self.world.phase = SimPhase::Running;
-                self.emit(&mut out, DomainEvent::PhaseChanged { phase: SimPhase::Running });
+                self.emit(
+                    &mut out,
+                    DomainEvent::PhaseChanged {
+                        phase: SimPhase::Running,
+                    },
+                );
             }
             OperatorAction::Ack(id) => {
                 let now = self.world.sim_time_ms;
@@ -318,7 +333,9 @@ impl SimEngine {
                     Some(t) if t.status != TrackStatus::Lost => {}
                     _ => return Err(format!("track {track} is no longer trackable")),
                 }
-                let objective = Objective::InvestigateTrack { track: track.clone() };
+                let objective = Objective::InvestigateTrack {
+                    track: track.clone(),
+                };
                 self.create_assignment(asset, objective, id, &mut out)?;
             }
             RecKind::FlagTrack { track, .. } => {
@@ -459,7 +476,12 @@ impl SimEngine {
         );
         for rec in new_recs {
             self.world.recommendations.push(rec.clone());
-            self.emit(&mut out, DomainEvent::RecommendationIssued { recommendation: rec });
+            self.emit(
+                &mut out,
+                DomainEvent::RecommendationIssued {
+                    recommendation: rec,
+                },
+            );
         }
 
         // 9. Metrics.
@@ -468,7 +490,12 @@ impl SimEngine {
         // 10. Completion.
         if now >= self.world.duration_ms {
             self.world.phase = SimPhase::Complete;
-            self.emit(&mut out, DomainEvent::PhaseChanged { phase: SimPhase::Complete });
+            self.emit(
+                &mut out,
+                DomainEvent::PhaseChanged {
+                    phase: SimPhase::Complete,
+                },
+            );
             let metrics = self.metrics.finish(&self.world);
             self.final_metrics = Some(metrics.clone());
             self.emit(&mut out, DomainEvent::ScenarioCompleted { metrics });
@@ -614,8 +641,20 @@ impl SimEngine {
                 true
             }
         });
+        // Index once per tick; a linear find() per observation is O(n^2)
+        // per tick and measurably blows the tick budget at 10k tracks.
+        let mut index: std::collections::HashMap<String, usize> = self
+            .world
+            .tracks
+            .iter()
+            .enumerate()
+            .map(|(i, t)| (t.id.clone(), i))
+            .collect();
         for obs in due {
-            if let Some(track) = self.world.tracks.iter_mut().find(|t| t.id == obs.track) {
+            if let Some(track) = index
+                .get(obs.track.as_str())
+                .map(|&i| &mut self.world.tracks[i])
+            {
                 // A delayed observation can arrive after a fresher one; never
                 // regress the picture.
                 if obs.measured_ms >= track.last_seen_ms {
@@ -635,6 +674,7 @@ impl SimEngine {
                     via_link: obs.via_link.clone(),
                     flagged: false,
                 };
+                index.insert(obs.track.clone(), self.world.tracks.len());
                 self.world.tracks.push(track);
                 self.emit(
                     out,
@@ -719,38 +759,36 @@ impl SimEngine {
                             AssetStatus::Enroute
                         };
                     }
-                    Objective::InvestigateTrack { track } => {
-                        match track_pos.get(track) {
-                            Some((tpos, tstatus)) if *tstatus != TrackStatus::Lost => {
-                                let (pos, vel, _) =
-                                    step_toward(asset.pos, *tpos, asset.speed_mps, dt_s);
-                                asset.pos = pos;
-                                asset.vel = vel;
-                                if asset.pos.dist(*tpos) <= INVESTIGATE_RANGE_M {
-                                    asset.status = AssetStatus::Investigating;
-                                    let dwell = self
-                                        .investigate_dwell
-                                        .entry(assignment.id.clone())
-                                        .or_insert(0);
-                                    *dwell += TICK_MS;
-                                    if *dwell >= INVESTIGATE_DWELL_MS {
-                                        completions
-                                            .push((assignment.id.clone(), "investigated".into()));
-                                        asset.status = AssetStatus::Available;
-                                        asset.assignment = None;
-                                    }
-                                } else {
-                                    asset.status = AssetStatus::Enroute;
+                    Objective::InvestigateTrack { track } => match track_pos.get(track) {
+                        Some((tpos, tstatus)) if *tstatus != TrackStatus::Lost => {
+                            let (pos, vel, _) =
+                                step_toward(asset.pos, *tpos, asset.speed_mps, dt_s);
+                            asset.pos = pos;
+                            asset.vel = vel;
+                            if asset.pos.dist(*tpos) <= INVESTIGATE_RANGE_M {
+                                asset.status = AssetStatus::Investigating;
+                                let dwell = self
+                                    .investigate_dwell
+                                    .entry(assignment.id.clone())
+                                    .or_insert(0);
+                                *dwell += TICK_MS;
+                                if *dwell >= INVESTIGATE_DWELL_MS {
+                                    completions
+                                        .push((assignment.id.clone(), "investigated".into()));
+                                    asset.status = AssetStatus::Available;
+                                    asset.assignment = None;
                                 }
-                            }
-                            _ => {
-                                completions.push((assignment.id.clone(), "track lost".into()));
-                                asset.status = AssetStatus::Available;
-                                asset.assignment = None;
-                                asset.vel = Vec2::default();
+                            } else {
+                                asset.status = AssetStatus::Enroute;
                             }
                         }
-                    }
+                        _ => {
+                            completions.push((assignment.id.clone(), "track lost".into()));
+                            asset.status = AssetStatus::Available;
+                            asset.assignment = None;
+                            asset.vel = Vec2::default();
+                        }
+                    },
                 },
                 None => {
                     // Patrol loop, or hold position.

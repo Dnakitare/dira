@@ -1,0 +1,62 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            packages: musl-tools
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            packages: gcc-aarch64-linux-gnu
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: corepack enable && corepack prepare pnpm@10.9.0 --activate
+      - run: pnpm install --frozen-lockfile && pnpm build
+        working-directory: web
+      - if: matrix.packages
+        run: sudo apt-get update && sudo apt-get install -y ${{ matrix.packages }}
+      - run: rustup update stable && rustup default stable && rustup target add ${{ matrix.target }}
+      - run: cargo build --release -p dira-runtime --target ${{ matrix.target }}
+        env:
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+          CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER: musl-gcc
+          CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
+          CC_x86_64_unknown_linux_musl: musl-gcc
+      - name: Package
+        run: |
+          NAME="dira-${{ github.ref_name }}-${{ matrix.target }}"
+          mkdir -p "$NAME/web"
+          cp "target/${{ matrix.target }}/release/dira" "$NAME/"
+          cp -R web/dist "$NAME/web/dist"
+          cp -R scenarios "$NAME/scenarios"
+          cp README.md LICENSE "$NAME/"
+          tar -czf "$NAME.tar.gz" "$NAME"
+      - name: Upload to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" --verify-tag \
+            --title "dira ${{ github.ref_name }}" \
+            --notes "One binary, four modes. Unpack and run: \`./dira simulate --scenario scenarios/perimeter-incursion.toml\`, then open http://127.0.0.1:8080." \
+            2>/dev/null || true
+          gh release upload "${{ github.ref_name }}" \
+            "dira-${{ github.ref_name }}-${{ matrix.target }}.tar.gz" --clobber

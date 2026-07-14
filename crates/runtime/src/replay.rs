@@ -74,7 +74,7 @@ impl ReplaySession {
                             self.publish_status();
                         }
                     }
-                    if self.tick_count % 10 == 0 {
+                    if self.tick_count.is_multiple_of(10) {
                         self.publish_status();
                     }
                 }
