@@ -74,7 +74,8 @@ pub struct RunInfo {
     pub run_id: i64,
     pub scenario_id: String,
     pub seed: u64,
-    pub started_at: String,
+    /// Wall-clock start, unix epoch milliseconds. Clients format for display.
+    pub started_at_ms: u64,
     pub completed: bool,
 }
 
