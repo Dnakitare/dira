@@ -1,0 +1,153 @@
+# Flagship demo scenario: two protected zones, mixed benign traffic, two
+# deliberate incursions, and a staged degradation of the north sensor uplink.
+# Everything here is synthetic. Same seed => same run, tick for tick.
+
+[scenario]
+id = "perimeter-incursion"
+name = "Perimeter incursion with degraded uplink"
+description = "Two incursions against a two-zone perimeter while the north uplink degrades from nominal to unavailable and recovers."
+seed = 42
+duration_s = 300.0
+bounds = [4000.0, 4000.0]
+
+[policy]
+recommendation_ttl_s = 45.0
+
+[[zones]]
+id = "z-alpha"
+name = "Alpha"
+kind = "protected"
+center = [-800.0, 400.0]
+radius = 500.0
+priority = 1
+
+[[zones]]
+id = "z-bravo"
+name = "Bravo"
+kind = "protected"
+center = [900.0, -600.0]
+radius = 400.0
+priority = 2
+
+[[assets]]
+id = "a-01"
+kind = "patrol"
+start = [-1050.0, 150.0]
+speed = 8.0
+patrol = [[-1050.0, 150.0], [-550.0, 150.0], [-550.0, 650.0], [-1050.0, 650.0]]
+
+[[assets]]
+id = "a-02"
+kind = "patrol"
+start = [900.0, -600.0]
+speed = 10.0
+patrol = [[900.0, -600.0], [300.0, -100.0]]
+
+[[assets]]
+id = "a-03"
+kind = "observer"
+start = [0.0, 0.0]
+speed = 25.0
+
+[[links]]
+id = "l-north"
+name = "North sensor uplink"
+
+[[links]]
+id = "l-south"
+name = "South sensor uplink"
+
+[[nodes]]
+id = "n-edge"
+name = "Edge runtime node"
+
+[[nodes]]
+id = "n-north"
+name = "North sensor node"
+
+# Benign wanderer in the northeast, visible from t=0.
+[[tracks]]
+id = "t-03"
+class = "air"
+pattern = "wander"
+start = [1200.0, 900.0]
+speed = 20.0
+via_link = "l-north"
+
+# Benign ground transit across the south of the map.
+[[tracks]]
+id = "t-02"
+class = "ground"
+pattern = "transit"
+enter_at_s = 5.0
+start = [-1900.0, -1500.0]
+exit = [1900.0, -1200.0]
+speed = 15.0
+via_link = "l-south"
+
+# Primary incursion: air track from the northeast toward zone Alpha.
+[[tracks]]
+id = "t-01"
+class = "air"
+pattern = "incursion"
+enter_at_s = 20.0
+start = [1900.0, 1800.0]
+speed = 28.0
+target_zone = "z-alpha"
+via_link = "l-north"
+
+# Fast benign transit through the middle while the uplink is degraded.
+[[tracks]]
+id = "t-05"
+class = "air"
+pattern = "transit"
+enter_at_s = 60.0
+start = [-1900.0, 1600.0]
+exit = [1900.0, 200.0]
+speed = 40.0
+via_link = "l-north"
+
+# Late second incursion: slow ground track toward zone Bravo.
+[[tracks]]
+id = "t-04"
+class = "ground"
+pattern = "incursion"
+enter_at_s = 150.0
+start = [400.0, -1900.0]
+speed = 12.0
+target_zone = "z-bravo"
+via_link = "l-south"
+
+# --- Staged link degradation of the north uplink ---
+
+[[faults]]
+at_s = 60.0
+link = "l-north"
+state = "delayed"
+delay_ms = 1500
+
+[[faults]]
+at_s = 90.0
+link = "l-north"
+state = "intermittent"
+loss = 0.55
+
+[[faults]]
+at_s = 120.0
+node = "n-north"
+health = "degraded"
+
+[[faults]]
+at_s = 150.0
+link = "l-north"
+state = "unavailable"
+
+[[faults]]
+at_s = 190.0
+link = "l-north"
+state = "nominal"
+
+[[faults]]
+at_s = 200.0
+node = "n-north"
+health = "nominal"

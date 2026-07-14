@@ -1,0 +1,14 @@
+[package]
+name = "dira-runtime"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "dira"
+path = "src/main.rs"
+
+[dependencies]
+dira-domain = { path = "../domain" }
+dira-protocol = { path = "../protocol" }
+dira-simulator = { path = "../simulator" }

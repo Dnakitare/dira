@@ -1,0 +1,17 @@
+# Alternative policy configuration for A/B comparison runs
+# (pass with --policy to simulate or benchmark mode).
+# Shorter flag horizon, no automated investigation suggestions,
+# faster recommendation expiry.
+
+recommendation_ttl_s = 30.0
+
+[track_flag]
+enabled = true
+horizon_s = 20.0
+
+[investigate]
+enabled = false
+
+[comms]
+enabled = true
+degraded_alert_s = 20.0

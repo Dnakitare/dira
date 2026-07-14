@@ -1,0 +1,86 @@
+# Calm baseline: same perimeter, benign traffic only, no faults. Useful as a
+# control run and for first-time UI walkthroughs.
+
+[scenario]
+id = "perimeter-baseline"
+name = "Perimeter baseline (benign traffic)"
+description = "Benign transits and a wanderer over a two-zone perimeter with nominal links throughout."
+seed = 7
+duration_s = 240.0
+bounds = [4000.0, 4000.0]
+
+[[zones]]
+id = "z-alpha"
+name = "Alpha"
+kind = "protected"
+center = [-800.0, 400.0]
+radius = 500.0
+priority = 1
+
+[[zones]]
+id = "z-bravo"
+name = "Bravo"
+kind = "protected"
+center = [900.0, -600.0]
+radius = 400.0
+priority = 2
+
+[[assets]]
+id = "a-01"
+kind = "patrol"
+start = [-1050.0, 150.0]
+speed = 8.0
+patrol = [[-1050.0, 150.0], [-550.0, 150.0], [-550.0, 650.0], [-1050.0, 650.0]]
+
+[[assets]]
+id = "a-02"
+kind = "patrol"
+start = [900.0, -600.0]
+speed = 10.0
+patrol = [[900.0, -600.0], [300.0, -100.0]]
+
+[[assets]]
+id = "a-03"
+kind = "observer"
+start = [0.0, 0.0]
+speed = 25.0
+
+[[links]]
+id = "l-north"
+name = "North sensor uplink"
+
+[[links]]
+id = "l-south"
+name = "South sensor uplink"
+
+[[nodes]]
+id = "n-edge"
+name = "Edge runtime node"
+
+[[tracks]]
+id = "t-10"
+class = "air"
+pattern = "wander"
+start = [1400.0, 1100.0]
+speed = 18.0
+via_link = "l-north"
+
+[[tracks]]
+id = "t-11"
+class = "ground"
+pattern = "transit"
+enter_at_s = 10.0
+start = [-1900.0, -1600.0]
+exit = [1900.0, -1500.0]
+speed = 14.0
+via_link = "l-south"
+
+[[tracks]]
+id = "t-12"
+class = "air"
+pattern = "transit"
+enter_at_s = 90.0
+start = [1900.0, 1700.0]
+exit = [-1900.0, 1500.0]
+speed = 30.0
+via_link = "l-north"
