@@ -71,6 +71,15 @@ WAL mode, single writer (the sim session). Replay mode reads a run and streams e
 
 Edge mode is simulate mode with a config file and service posture; the seam for real input adapters is the same typed-observation path the simulator uses. That is deliberate: replacing synthetic sources must not touch domain logic.
 
+## Presentation layer
+
+Two things exist purely for the operator's eyes and are never read by simulation or policy code:
+
+- **Basemap.** A scenario may carry an `origin` (lat/lon) and a pre-rendered map texture with a known extent. The runtime passes it through in `WorldState.basemap`; the console drapes it as a plane under the scene. Textures are generated offline from the Protomaps daily build (see `web/public/basemaps/`), so there is no runtime tile dependency and it works air-gapped. Attribution is shown whenever a basemap is present.
+- **Symbology.** Track shape encodes domain (arc = air, square = ground, diamond = unknown), following MIL-STD-2525 convention; color encodes identity (amber unknown, red flagged, cyan friendly). The distinction lives entirely in the renderer; the wire model just carries `class`.
+
+Both are additive: a scenario with no `origin` renders on the abstract grid, and the shape logic has a defined glyph for every class.
+
 ## Known limitations
 
 - Snapshots are full-state, not deltas. Fine at this entity count; the protocol envelope leaves room for a delta message kind later.
