@@ -287,6 +287,18 @@ pub struct Assignment {
     pub from_recommendation: String,
 }
 
+/// Presentation-only georeference for a scenario: a pre-rendered map texture
+/// draped under the scene. Never consulted by simulation or policy logic.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Basemap {
+    /// URL path relative to the served web root, e.g. "basemaps/coos-bay.png".
+    pub url: String,
+    /// Square extent covered by the texture, in meters, centered on origin.
+    pub extent_m: f64,
+    /// [lat, lon] of the scene origin, for provenance and future adapters.
+    pub origin: [f64; 2],
+}
+
 /// A condition change that can come from a scenario timeline or an
 /// operator-approved injection.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

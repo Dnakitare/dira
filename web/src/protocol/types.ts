@@ -100,6 +100,12 @@ export interface Assignment {
   from_recommendation: string
 }
 
+export interface Basemap {
+  url: string
+  extent_m: number
+  origin: [number, number]
+}
+
 export interface WorldState {
   scenario_id: string
   scenario_name: string
@@ -115,6 +121,7 @@ export interface WorldState {
   nodes: NodeInfo[]
   recommendations: Recommendation[]
   assignments: Assignment[]
+  basemap: Basemap | null
 }
 
 export interface RunMetrics {

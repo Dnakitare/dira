@@ -9,6 +9,11 @@ description = "Two incursions against a two-zone perimeter while the north uplin
 seed = 42
 duration_s = 300.0
 bounds = [4000.0, 4000.0]
+# Presentation only: pre-rendered OSM/Protomaps texture draped under the scene.
+# Anchor is a stretch of Oregon coastline; the scenario itself is synthetic.
+origin = [43.367, -124.217]
+basemap = "basemaps/coos-bay.png"
+basemap_extent_m = 4230.0
 
 [policy]
 recommendation_ttl_s = 45.0

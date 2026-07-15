@@ -126,6 +126,7 @@ fn build_scenario(
             health: NodeHealth::Nominal,
         }],
         faults,
+        basemap: None,
     }
 }
 

@@ -8,6 +8,11 @@ description = "Benign transits and a wanderer over a two-zone perimeter with nom
 seed = 7
 duration_s = 240.0
 bounds = [4000.0, 4000.0]
+# Presentation only: pre-rendered OSM/Protomaps texture draped under the scene.
+# Anchor is a stretch of Oregon coastline; the scenario itself is synthetic.
+origin = [43.367, -124.217]
+basemap = "basemaps/coos-bay.png"
+basemap_extent_m = 4230.0
 
 [[zones]]
 id = "z-alpha"

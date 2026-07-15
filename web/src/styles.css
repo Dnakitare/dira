@@ -516,6 +516,45 @@ button {
   pointer-events: none;
 }
 
+.scene-attribution {
+  position: absolute;
+  right: 12px;
+  top: 10px;
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+  color: color-mix(in srgb, var(--ink-dim) 80%, transparent);
+  pointer-events: none;
+  font-family: var(--sans);
+}
+
+.legend {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 9px 11px;
+  background: color-mix(in srgb, var(--panel) 78%, transparent);
+  border: 1px solid var(--edge);
+  backdrop-filter: blur(2px);
+  pointer-events: none;
+}
+
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+}
+
+.legend-row svg {
+  flex: 0 0 18px;
+}
+
 .selection-card {
   position: absolute;
   right: 12px;

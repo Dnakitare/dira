@@ -210,5 +210,6 @@ fn build_stress_scenario(n_tracks: usize) -> dira_simulator::Scenario {
             health: NodeHealth::Nominal,
         }],
         faults: Vec::new(),
+        basemap: None,
     }
 }

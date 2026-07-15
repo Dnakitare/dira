@@ -23,7 +23,7 @@ const SYMBOL_R = 34 // meters; symbol half-size at world scale
 
 interface TrackObj {
   group: THREE.Group
-  body: THREE.LineLoop
+  body: THREE.Line
   dot: THREE.Mesh
   halo: THREE.LineLoop
   leader: THREE.Line
@@ -67,6 +67,40 @@ function diamondGeom(r: number): THREE.BufferGeometry {
     new THREE.Vector3(0, -r, 0),
     new THREE.Vector3(-r, 0, 0),
   ])
+}
+
+function squareGeom(r: number): THREE.BufferGeometry {
+  const s = r * 0.82
+  return new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(s, s, 0),
+    new THREE.Vector3(s, -s, 0),
+    new THREE.Vector3(-s, -s, 0),
+    new THREE.Vector3(-s, s, 0),
+  ])
+}
+
+/// 2525-flavored air frame: an arc open at the bottom.
+function airArcGeom(r: number): THREE.BufferGeometry {
+  const pts: THREE.Vector3[] = []
+  const from = (-25 * Math.PI) / 180
+  const to = (205 * Math.PI) / 180
+  for (let i = 0; i <= 24; i++) {
+    const a = from + ((to - from) * i) / 24
+    pts.push(new THREE.Vector3(Math.cos(a) * r * 1.1, Math.sin(a) * r * 1.1, 0))
+  }
+  return new THREE.BufferGeometry().setFromPoints(pts)
+}
+
+/// Shape encodes domain (air / ground / unknown); color stays identity.
+function trackBody(cls: Track['class'], material: THREE.LineBasicMaterial): THREE.Line {
+  switch (cls) {
+    case 'air':
+      return new THREE.Line(airArcGeom(SYMBOL_R), material)
+    case 'ground':
+      return new THREE.LineLoop(squareGeom(SYMBOL_R), material)
+    case 'unknown':
+      return new THREE.LineLoop(diamondGeom(SYMBOL_R), material)
+  }
 }
 
 function triangleGeom(r: number): THREE.BufferGeometry {
@@ -275,6 +309,19 @@ export class SceneManager {
     this.assetObjs.clear()
 
     const { width, height } = world.bounds
+    const gridColor = world.basemap ? 0x1a2432 : COLORS.grid
+    const gridMajorColor = world.basemap ? 0x243248 : COLORS.gridMajor
+    if (world.basemap) {
+      const tex = new THREE.TextureLoader().load(world.basemap.url)
+      tex.colorSpace = THREE.SRGBColorSpace
+      const e = world.basemap.extent_m
+      const plane = new THREE.Mesh(
+        new THREE.PlaneGeometry(e, e),
+        new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.9, depthWrite: false }),
+      )
+      plane.position.z = -2
+      this.gridGroup.add(plane)
+    }
     this.frustum = Math.max(width, height) * 1.15
     this.resize()
     this.camera.position.set(0, 0, 10)
@@ -294,14 +341,15 @@ export class SceneManager {
       const bucket = y % 1000 === 0 ? major : minor
       bucket.push(new THREE.Vector3(-hw, y, -1), new THREE.Vector3(hw, y, -1))
     }
+    const gridOpacity = world.basemap ? 0.55 : 1.0
     this.gridGroup.add(
       new THREE.LineSegments(
         new THREE.BufferGeometry().setFromPoints(minor),
-        new THREE.LineBasicMaterial({ color: COLORS.grid }),
+        new THREE.LineBasicMaterial({ color: gridColor, transparent: true, opacity: gridOpacity }),
       ),
       new THREE.LineSegments(
         new THREE.BufferGeometry().setFromPoints(major),
-        new THREE.LineBasicMaterial({ color: COLORS.gridMajor }),
+        new THREE.LineBasicMaterial({ color: gridMajorColor, transparent: true, opacity: gridOpacity }),
       ),
     )
     // Boundary frame.
@@ -312,7 +360,7 @@ export class SceneManager {
         new THREE.Vector3(hw, hh, -1),
         new THREE.Vector3(-hw, hh, -1),
       ]),
-      new THREE.LineBasicMaterial({ color: COLORS.gridMajor }),
+      new THREE.LineBasicMaterial({ color: gridMajorColor }),
     )
     this.gridGroup.add(frame)
   }
@@ -373,7 +421,7 @@ export class SceneManager {
     const group = new THREE.Group()
     const color = track.flagged ? COLORS.alert : COLORS.unknown
     const bodyMat = new THREE.LineBasicMaterial({ color, transparent: true })
-    const body = new THREE.LineLoop(diamondGeom(SYMBOL_R), bodyMat)
+    const body = trackBody(track.class, bodyMat)
     const dot = new THREE.Mesh(
       new THREE.CircleGeometry(7, 16),
       new THREE.MeshBasicMaterial({ color, transparent: true }),

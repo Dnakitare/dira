@@ -21,6 +21,8 @@ pub struct WorldState {
     pub nodes: Vec<Node>,
     pub recommendations: Vec<Recommendation>,
     pub assignments: Vec<Assignment>,
+    /// Optional presentation georeference; see [`Basemap`].
+    pub basemap: Option<Basemap>,
 }
 
 impl WorldState {

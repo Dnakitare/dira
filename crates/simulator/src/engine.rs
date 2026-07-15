@@ -102,6 +102,7 @@ impl SimEngine {
             nodes: scenario.nodes.clone(),
             recommendations: Vec::new(),
             assignments: Vec::new(),
+            basemap: scenario.basemap.clone(),
         };
         // Initial coverage flags so the very first snapshot is accurate.
         for zone in &mut world.zones {

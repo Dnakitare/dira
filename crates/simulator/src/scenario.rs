@@ -5,7 +5,7 @@ use serde::Deserialize;
 use thiserror::Error;
 
 use dira_domain::{
-    Asset, AssetKind, AssetStatus, Bounds, FaultSpec, Link, LinkState, Node, NodeHealth,
+    Asset, AssetKind, AssetStatus, Basemap, Bounds, FaultSpec, Link, LinkState, Node, NodeHealth,
     PolicyConfig, TrackClass, Vec2, Zone, ZoneKind,
 };
 
@@ -58,6 +58,15 @@ pub struct MetaSpec {
     pub duration_s: f64,
     /// [width, height] in meters, centered on the origin.
     pub bounds: [f64; 2],
+    /// Optional presentation basemap: web-root-relative texture path.
+    #[serde(default)]
+    pub basemap: Option<String>,
+    /// Square extent of the basemap texture in meters.
+    #[serde(default)]
+    pub basemap_extent_m: Option<f64>,
+    /// [lat, lon] anchor of the scene origin.
+    #[serde(default)]
+    pub origin: Option<[f64; 2]>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -173,6 +182,7 @@ pub struct Scenario {
     pub nodes: Vec<Node>,
     /// Sorted by time.
     pub faults: Vec<TimedFault>,
+    pub basemap: Option<Basemap>,
 }
 
 #[derive(Debug, Clone)]
@@ -225,6 +235,24 @@ pub fn validate(file: ScenarioFile) -> Result<Scenario, ScenarioError> {
     if meta.duration_s <= 0.0 {
         return Err(invalid("duration_s must be positive"));
     }
+    let basemap = match (&meta.basemap, meta.basemap_extent_m, meta.origin) {
+        (Some(url), Some(extent_m), Some(origin)) => {
+            if extent_m <= 0.0 {
+                return Err(invalid("basemap_extent_m must be positive"));
+            }
+            Some(Basemap {
+                url: url.clone(),
+                extent_m,
+                origin,
+            })
+        }
+        (None, _, _) => None,
+        _ => {
+            return Err(invalid(
+                "basemap requires all of: basemap, basemap_extent_m, origin",
+            ))
+        }
+    };
     if meta.bounds[0] <= 0.0 || meta.bounds[1] <= 0.0 {
         return Err(invalid("bounds must be positive"));
     }
@@ -461,6 +489,7 @@ pub fn validate(file: ScenarioFile) -> Result<Scenario, ScenarioError> {
         links,
         nodes,
         faults,
+        basemap,
     })
 }
 
