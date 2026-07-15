@@ -7,7 +7,7 @@ A compiled, edge-hosted digital-twin and operator-coordination runtime. One Rust
 
 Everything in this repository is simulation. Inputs are synthetic, entities are generic (track, asset, zone, assignment), and every action is a recommendation until an operator approves it.
 
-**[Live demo](https://dnakitare.github.io/dira/)** — the actual console replaying a recorded run in your browser, no install. (It's a static export: the same UI you get against a live runtime, minus the ability to task anything.)
+**[Live demo](https://dnakitare.github.io/dira/)** — the actual console replaying a recorded run in your browser, no install. (It's a static export: the same UI you get against a live runtime, minus the ability to task anything.) There's also a narrated [3-minute demo video](https://github.com/Dnakitare/dira/releases/download/v0.1.0/dira-demo.mp4) walking the full scenario.
 
 ![operator console](docs/console.png)
 
