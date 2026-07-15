@@ -541,6 +541,24 @@ impl SimEngine {
                         t.done = true;
                     }
                 }
+                Motion::Route { waypoints, loiter } => {
+                    let last = waypoints.len() - 1;
+                    let target = waypoints[t.wp.min(last)];
+                    let (pos, vel, arrived) = step_toward(t.pos, target, plan.speed, dt_s);
+                    t.pos = pos;
+                    t.vel = vel;
+                    if arrived {
+                        if t.wp >= last {
+                            if *loiter {
+                                t.vel = Vec2::default();
+                            } else {
+                                t.done = true;
+                            }
+                        } else {
+                            t.wp += 1;
+                        }
+                    }
+                }
                 Motion::Incursion { zone } => {
                     let (center, radius) = self
                         .world
@@ -585,7 +603,12 @@ impl SimEngine {
                     t.pos = pos;
                 }
             }
-            if !bounds.contains(t.pos) && matches!(plan.motion, Motion::Transit { .. }) {
+            if !bounds.contains(t.pos)
+                && matches!(
+                    plan.motion,
+                    Motion::Transit { .. } | Motion::Route { loiter: false, .. }
+                )
+            {
                 t.done = true;
             }
         }

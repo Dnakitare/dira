@@ -79,14 +79,34 @@ start = [1200.0, 900.0]
 speed = 20.0
 via_link = "l-north"
 
-# Benign ground transit across the south of the map.
+# Benign ground traffic. Waypoints are routed along the basemap's actual
+# road network (A* over extracted OSM road geometry), running from the
+# northwest through the Alpha area into downtown, so the track follows real
+# streets. Passing through Alpha exercises the flag policy on benign traffic.
 [[tracks]]
 id = "t-02"
 class = "ground"
-pattern = "transit"
+pattern = "route"
 enter_at_s = 5.0
-start = [-1900.0, -1500.0]
-exit = [1900.0, -1200.0]
+start = [-1421.7, 1331.2]
+waypoints = [
+  [-1421.7, 1331.2],
+  [-1522.8, 1369.4],
+  [-1571.4, 1250.9],
+  [-1612.2, 1255.3],
+  [-1617.4, 1215.8],
+  [-1167.7, 1061.7],
+  [-1084.3, 990.0],
+  [-1056.6, 898.9],
+  [-1089.1, 680.1],
+  [-928.1, 398.4],
+  [-836.5, 112.3],
+  [-185.3, 104.9],
+  [-159.7, 30.7],
+  [-157.5, -507.2],
+  [-20.4, -474.6],
+  [383.4, -476.8],
+]
 speed = 15.0
 via_link = "l-south"
 
@@ -112,15 +132,23 @@ exit = [1900.0, 200.0]
 speed = 40.0
 via_link = "l-north"
 
-# Late second incursion: slow ground track toward zone Bravo.
+# Late second incursion: slow ground track that drives the river-bank road
+# up into the port at zone Bravo, then holds (loiters) so it can be flagged
+# and investigated.
 [[tracks]]
 id = "t-04"
 class = "ground"
-pattern = "incursion"
+pattern = "route"
+loiter = true
 enter_at_s = 150.0
-start = [400.0, -1900.0]
+start = [500.0, -1480.0]
+waypoints = [
+  [500.0, -1480.0],
+  [640.0, -1080.0],
+  [770.0, -720.0],
+  [880.0, -600.0],
+]
 speed = 12.0
-target_zone = "z-bravo"
 via_link = "l-south"
 
 # --- Staged link degradation of the north uplink ---

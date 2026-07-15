@@ -110,7 +110,7 @@ pub struct TrackSpec {
     pub id: String,
     #[serde(default = "default_track_class")]
     pub class: String,
-    /// "patrol" | "transit" | "incursion" | "wander"
+    /// "patrol" | "transit" | "route" | "incursion" | "wander"
     pub pattern: String,
     #[serde(default)]
     pub enter_at_s: f64,
@@ -123,6 +123,9 @@ pub struct TrackSpec {
     pub exit: Option<[f64; 2]>,
     #[serde(default)]
     pub waypoints: Vec<[f64; 2]>,
+    /// Route pattern only: hold at the final waypoint instead of leaving.
+    #[serde(default)]
+    pub loiter: bool,
 }
 
 fn default_track_class() -> String {
@@ -208,6 +211,10 @@ pub enum Motion {
     Patrol { waypoints: Vec<Vec2> },
     /// Straight to an exit point, then gone.
     Transit { exit: Vec2 },
+    /// Follow a waypoint path once. On reaching the end, either leave the
+    /// picture (`loiter=false`) or hold position (`loiter=true`). Used for
+    /// ground tracks that trace real roadways.
+    Route { waypoints: Vec<Vec2>, loiter: bool },
     /// Head for a zone, then orbit inside it.
     Incursion { zone: String },
     /// Seeded random walk within bounds.
@@ -385,6 +392,18 @@ pub fn validate(file: ScenarioFile) -> Result<Scenario, ScenarioError> {
                         invalid(format!("track {}: transit pattern needs exit", t.id))
                     })?;
                     Motion::Transit { exit: v2(exit) }
+                }
+                "route" => {
+                    if t.waypoints.is_empty() {
+                        return Err(invalid(format!(
+                            "track {}: route pattern needs waypoints",
+                            t.id
+                        )));
+                    }
+                    Motion::Route {
+                        waypoints: t.waypoints.iter().copied().map(v2).collect(),
+                        loiter: t.loiter,
+                    }
                 }
                 "incursion" => {
                     let zone = t.target_zone.clone().ok_or_else(|| {
